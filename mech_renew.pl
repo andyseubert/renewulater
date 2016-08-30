@@ -93,21 +93,49 @@ while ($result =~ m/.*?<td align="left" class="patFuncTitle">.*?<a href=.*?>(.*?
 #	$email_body =  "$email_body"."<br />\n";
 }
         $email_body =  "$email_body"."</table></body></html>\n";
-unless(open (MAIL, "|/usr/sbin/sendmail $email"))
-{
-print "error.\n";
-warn "Error starting sendmail: $!";
-}
-else{
-print MAIL $from;
-print MAIL "To: $email\n";
-print MAIL $reply_to;
-print MAIL $subject;
-print MAIL "Content-type: text/html\n\n";
-print MAIL $email_body;
-close(MAIL) || warn "Error closing mail: $!";
-print "Mail sent\n";
-}
+
+
+# unless(open (MAIL, "|/usr/sbin/sendmail $email"))
+# {
+# print "error.\n";
+# warn "Error starting sendmail: $!";
+# }
+# else{
+# print MAIL $from;
+# print MAIL "To: $email\n";
+# print MAIL $reply_to;
+# print MAIL $subject;
+# print MAIL "Content-type: text/html\n\n";
+# print MAIL $email_body;
+# close(MAIL) || warn "Error closing mail: $!";
+# print "Mail sent\n";
+# }
+
+### added when moving to windows 08/30/2016 inside the net
+use Net::SMTP;
+    # Constructors
+$smtp = Net::SMTP->new('mailout.collegenet.com', Timeout => 60);
+$smtp->recipient($email,"andys@florapdx.com");
+$smtp->mail( 'renewulater@florapdx.com' ); # use the sender's address here
+$smtp->to($email); # recipient's address
+$smtp->data(); # Start the mail
+
+# Send the header.
+$smtp->datasend("To: $email\n");
+$smtp->datasend("Cc: andys\@florapdx.com\n");
+$smtp->datasend("From: renewulater@florapdx.com\n");
+$smtp->datasend("Subject: RenewUlater.\n");
+# Send the body.
+
+$smtp->datasend("MIME-Version: 1.0\n");
+$smtp->datasend("Content-Type: multipart/mixed; boundary=\"frontier\"\n");
+$smtp->datasend("\n--frontier\n");
+$smtp->datasend("Content-Type: text/html; charset=\"UTF-8\" \n");
+$smtp->datasend("$email_body\n");
+$smtp->datasend("--frontier--\n");
+$smtp->datasend("\n");
+$smtp->dataend(); # Finish sending the mail
+$smtp->quit; # Close the SMTP connection
 
 print "Success for $email.\n";
 
