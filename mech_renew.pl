@@ -47,7 +47,7 @@ my $result=$mech->content();
 #print "\n\n\n";
 if ( $result =~ m/<a href="\/patroninfo\~S1\/(\d{7})/ ){ #"
 	$patroninfo = $1;
-#	print "$patroninfo\n";
+	print "patron code: $patroninfo\n";
    }else{
     	die (print "could not login.\n$card\n$pin\n$email\n $result");
     } 
@@ -56,15 +56,21 @@ $email_body = "<HTML><BODY>Renew-You-later Running for $email.<br /><br />\n\n";
 #######
 # print any overdue fines
 #######
-
-if ($result =~ m/<a href="\/patroninfo\/${patroninfo}\/overdues" onClick="return replace_or_redraw\( '\/patroninfo\/${patroninfo}\/overdues' \)">(.*?)<\/a>/){
+if ($result =~ m/<span class="loggedInMessage">You are logged into Multnomah County Library                                         \/All Locations as (SEUBERT, ANDREW JAMES)<\/span>/){
+	$email_body = "$email_body"."Logged in as $1\n";
+	print "Logged in as $1\n";
+}
+if ($result =~ m/<a href="\/patroninfo~S1\/${patroninfo}\/overdues" target="_self">(.*?)<\/a>/){
 	$email_body =  "$email_body"."You have $1<br /><br />\n\n";
+	print "you have $1\n";
 	}
 
 $email_body =  "$email_body"."\n\n<br /><br />Renewing...<br />\n";
 $email_body = "$email_body"."<table border = 1>\n";
 $email_body = "$email_body"."<tr><th> TITLE </th><th> STATUS </th></tr>\n";
-$req = "https://catalog.multcolib.org/patroninfo/$patroninfo/items?renewall";
+
+## start renewal pae GET here
+$req = "https://catalog.multcolib.org/patroninfo~S1/$patroninfo/items?renewall";
 $mech->get("$req");
 die unless ($mech->success);
 $result=$mech->content();
@@ -72,29 +78,29 @@ $result=$mech->content();
 #######
 # OK , here we will need to parse out the patFunc tags 
 #######
-while ($result =~ m/.*?<td align="left" class="patFuncTitle">.*?<a href=.*?>(.*?)<\/a>/) {
-	#	print $result;
+while ($result =~ m/<span class="patFuncTitleMain">(.*?)<\/span>/) {
+#		print $result;
         @title = split (/:/, $1); ### just get the title, not the extended title.
-  #      print $title[0];
+        print "$title[0]\n";
         $email_body =  "$email_body"."<tr><td>$title[0]\n</td>";
 
         #remove the found text from the result so we don't find it again.
-        $result =~ s/.*?<td align="left" class="patFuncTitle">.*?<a href=.*?>.*?<\/a>//;
-        if ($result =~ m/<td align="left" class="patFuncStatus"> (DUE \d\d-\d\d-\d\d) <em>(.*?)<\/em>/){
+        $result =~ s/<span class="patFuncTitleMain">.*?<\/span>//;
+        if ($result =~ m/<td  class="patFuncStatus" text-align:left> (DUE \d\d-\d\d-\d\d) <em>(.*?)<\/em>/){
 		 				$due = "$1";
 #                $email_body =  "$email_body"."<tr><td>$1</td>";
-						if ($2 =~ m/<font color="red">(.*?)<\/font>/) { ### if overdue, special action
+						if ($2 =~ m/<div style="color:red">(.*?)<\/div>/) { ### if overdue, special action
 							$email_body =  "$email_body"."<td><font color=red> *** ALERT *** NOT RENEWED*** $1 $due<\/font></td></tr>\n";
 						}else{
 							$email_body =  "$email_body"."<td>$2</td></tr>\n";
 						}
-				    $result =~ s/<td align="left" class="patFuncStatus"> .*?<\/em>//;
+				    $result =~ s/<td  class="patFuncStatus" text-align:left> .*?<\/em>//;
 			  }
 #	$email_body =  "$email_body"."<br />\n";
 }
         $email_body =  "$email_body"."</table></body></html>\n";
 
-
+print "$email_body\n";
 # unless(open (MAIL, "|/usr/sbin/sendmail $email"))
 # {
 # print "error.\n";
