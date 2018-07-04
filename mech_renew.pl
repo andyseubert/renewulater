@@ -100,7 +100,7 @@ while ($result =~ m/<span class="patFuncTitleMain">(.*?)<\/span>/) {
 }
         $email_body =  "$email_body"."</table></body></html>\n";
 
-print "$email_body\n";
+#print "$email_body\n";
 # unless(open (MAIL, "|/usr/sbin/sendmail $email"))
 # {
 # print "error.\n";
